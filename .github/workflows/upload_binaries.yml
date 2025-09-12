@@ -1,49 +1,58 @@
-name: Upload Binaries
+name: Build and Upload FireEngine BMI2
 
 on:
   workflow_dispatch:
 
 jobs:
-  Artifacts:
-    name: FireEngine BMI2
+  build-and-upload:
+    name: Build FireEngine BMI2 on Ubuntu
     runs-on: ubuntu-latest
     env:
       NAME: fireengine
       BINARY: bmi2
-      EXT: # leave empty if no extension
+      EXT: ""
     steps:
-      - uses: actions/checkout@v4
+      # 1️⃣ Checkout your repo
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
-      - name: Setup build environment
+      # 2️⃣ Set up dependencies (if needed)
+      - name: Install Dependencies
         run: |
-          sudo apt update
-          sudo apt install -y make gcc g++ zip tar
+          sudo apt-get update
+          sudo apt-get install -y build-essential git zip tar
 
-      - name: Create package directory
-        run: mkdir -p stockfish
-
-      - name: Copy files
+      # 3️⃣ Build the BMI2 binary
+      - name: Build FireEngine BMI2
         run: |
-          # Copy your compiled binary into stockfish directory
-          cp path/to/fireengine-bmi2 ./stockfish/
-          # Copy additional required files
-          cp -r src scripts AUTHORS CITATION.cff README.md CONTRIBUTING.md "Top CPU Contributors.txt" Copying.txt ./stockfish/
+          mkdir -p build
+          # Replace this with your actual build command
+          make build ARCH=bmi2
+          # Move the binary to a known folder
+          mv fireengine-bmi2 build/
 
-      - name: Create tar (Linux)
-        if: runner.os != 'Windows'
+      # 4️⃣ Prepare package folder
+      - name: Prepare Package
         run: |
-          chmod +x ./stockfish/fireengine-bmi2
-          tar -cvf fireengine-bmi2.tar stockfish
+          mkdir -p fireengine-package
+          cp build/fireengine-bmi2 fireengine-package/
 
-      - name: Create zip (Windows)
-        if: runner.os == 'Windows'
-        run: zip -r fireengine-bmi2.zip stockfish
+      # 5️⃣ Create tar (for Linux)
+      - name: Create tar
+        run: |
+          tar -cvf fireengine-bmi2.tar fireengine-package
 
-      - name: Release
+      # 6️⃣ Upload artifact to GitHub
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fireengine-bmi2
+          path: fireengine-bmi2.tar
+
+      # 7️⃣ Release (optional, only if tagging)
+      - name: Create GitHub Release
+        if: startsWith(github.ref_name, 'v')
         uses: softprops/action-gh-release@v1
         with:
-          files: fireengine-bmi2.tar # or .zip if Windows
+          files: fireengine-bmi2.tar
           token: ${{ secrets.token }}
-          tag_name: fireengine-bmi2
-          name: fireengine-bmi2
-          prerelease: false
