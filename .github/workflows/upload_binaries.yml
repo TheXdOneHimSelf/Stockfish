@@ -22,24 +22,26 @@ jobs:
 
       - name: Build FireEngine BMI2
         run: |
-          cd stockfish
           make -j$(nproc) ARCH=$ARCH COMP=g++ BINARY=$BINARY_NAME
-          cd ..
 
       - name: Verify binary exists
         run: |
-          ls -lh stockfish/$BINARY_NAME
+          if [ ! -f "$BINARY_NAME" ]; then
+            echo "ERROR: Binary not found!"
+            exit 1
+          fi
+          ls -lh $BINARY_NAME
 
       - name: Package binary
         run: |
           mkdir -p package
-          cp stockfish/$BINARY_NAME package/
-          tar -cvf $BINARY_NAME-$ARCH.tar -C package .
+          cp $BINARY_NAME package/
+          tar -cvf ${BINARY_NAME}-${ARCH}.tar -C package .
 
       - name: Create GitHub Release (dev)
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.run_number }}-fireengine-bmi2
+          tag_name: fireengine-bmi2-dev-${{ github.run_number }}
           name: FireEngine BMI2 Dev Build ${{ github.run_number }}
           files: fireengine-x86-64-bmi2.tar
           draft: false
