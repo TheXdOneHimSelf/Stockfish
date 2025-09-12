@@ -1,24 +1,23 @@
-name: Upload FireEngine BMI2
+name: Upload Binaries
 
 on:
   workflow_dispatch:
 
 jobs:
-  upload:
-    name: Upload FireEngine BMI2
+  Artifacts:
+    name: FireEngine BMI2
     runs-on: ubuntu-latest
     env:
       NAME: fireengine
       BINARY: bmi2
-      EXT: ""  # leave empty if no extension
+      EXT: # leave empty if no extension
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Setup build environment
         run: |
           sudo apt update
-          sudo apt install -y make gcc g++ tar zip
+          sudo apt install -y make gcc g++ zip tar
 
       - name: Create package directory
         run: mkdir -p stockfish
@@ -30,15 +29,20 @@ jobs:
           # Copy additional required files
           cp -r src scripts AUTHORS CITATION.cff README.md CONTRIBUTING.md "Top CPU Contributors.txt" Copying.txt ./stockfish/
 
-      - name: Create tar archive
+      - name: Create tar (Linux)
+        if: runner.os != 'Windows'
         run: |
           chmod +x ./stockfish/fireengine-bmi2
           tar -cvf fireengine-bmi2.tar stockfish
 
-      - name: Create GitHub release
+      - name: Create zip (Windows)
+        if: runner.os == 'Windows'
+        run: zip -r fireengine-bmi2.zip stockfish
+
+      - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: fireengine-bmi2.tar
+          files: fireengine-bmi2.tar # or .zip if Windows
           token: ${{ secrets.token }}
           tag_name: fireengine-bmi2
           name: fireengine-bmi2
