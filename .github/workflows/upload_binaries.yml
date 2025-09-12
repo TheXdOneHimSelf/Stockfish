@@ -1,47 +1,21 @@
-name: Upload FireEngine Binaries
-
+name: Upload Binaries
 on:
   workflow_dispatch:
-    inputs:
-      matrix:
-        description: 'JSON matrix of build configurations'
-        required: true
-        default: |
-          [
-            {
-              "config": {
-                "name": "FireEngine",
-                "simple_name": "fireengine",
-                "os": "ubuntu-latest",
-                "compiler": "g++",
-                "comp": "g++",
-                "ext": "",
-                "sde": "sde",
-                "shell": "bash",
-                "msys_sys": "MINGW64",
-                "msys_env": "x86_64"
-              },
-              "binaries": "bmi2"
-            }
-          ]
 
 jobs:
   Artifacts:
-    name: ${{ matrix.config.name }} ${{ matrix.binaries }}
-    runs-on: ${{ matrix.config.os }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(inputs.matrix) }}
+    name: FireEngine bmi2
+    runs-on: ubuntu-latest
     env:
-      COMPCXX: ${{ matrix.config.compiler }}
-      COMP: ${{ matrix.config.comp }}
-      EXT: ${{ matrix.config.ext }}
-      NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binaries }}
-      SDE: ${{ matrix.config.sde }}
+      COMPCXX: g++
+      COMP: g++
+      EXT: ""
+      NAME: fireengine
+      BINARY: bmi2
+      SDE: bmi2
     defaults:
       run:
-        shell: ${{ matrix.config.shell }}
+        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,17 +24,17 @@ jobs:
       - name: Download artifact from compilation
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
-          path: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
+          name: fireengine bmi2
+          path: fireengine bmi2
 
       - name: Setup msys and install required packages
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
-          msystem: ${{ matrix.config.msys_sys }}
-          install: mingw-w64-${{ matrix.config.msys_env }} make git zip
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc make git zip
 
-      - name: Create Package Directory
+      - name: Create Package
         run: mkdir stockfish
 
       - name: Download wiki
@@ -71,7 +45,7 @@ jobs:
 
       - name: Copy files
         run: |
-          mv "${{ matrix.config.simple_name }} ${{ matrix.binaries }}" stockfish-workflow
+          mv "fireengine bmi2" stockfish-workflow
           cd stockfish-workflow
           cp -r src ../stockfish/
           cp -r scripts ../stockfish/
@@ -98,7 +72,7 @@ jobs:
         if: startsWith(github.ref_name, 'sf_') && github.ref_type == 'tag'
         uses: softprops/action-gh-release@v1
         with:
-          files: stockfish-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          files: stockfish-$NAME-$BINARY.tar
           token: ${{ secrets.token }}
 
       - name: Get last commit sha
@@ -124,5 +98,5 @@ jobs:
           name: FireEngine dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: fireengine-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
-          files: stockfish-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          files: stockfish-$NAME-$BINARY.tar
           token: ${{ secrets.token }}
