@@ -1,4 +1,4 @@
-name: Build and Upload Fireengine
+name: Build & Upload FireEngine BMI2
 
 on:
   workflow_dispatch:
@@ -7,40 +7,42 @@ jobs:
   build-and-upload:
     runs-on: ubuntu-latest
     env:
-      NAME: fireengine
+      TOKEN: ${{ secrets.token }}
+      BINARY_NAME: fireengine
       ARCH: x86-64-bmi2
-      COMP: g++
-      EXT: ""
-      PAT_TOKEN: ${{ secrets.token }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y build-essential zip git
+          sudo apt-get update
+          sudo apt-get install -y g++ make zip tar
 
-      - name: Build Fireengine
+      - name: Build FireEngine BMI2
         run: |
-          make -j$(nproc) build ARCH=$ARCH COMP=$COMP EXT=$EXT
-          mv ./stockfish-$ARCH fireengine
+          cd stockfish
+          make -j$(nproc) ARCH=$ARCH COMP=g++ BINARY=$BINARY_NAME
+          cd ..
 
-      - name: Prepare package folder
+      - name: Verify binary exists
         run: |
-          mkdir fireengine-package
-          cp fireengine fireengine-package/
-          cp -r src scripts README.md AUTHORS COPYING.txt "Top CPU Contributors.txt" fireengine-package/ || true
+          ls -lh stockfish/$BINARY_NAME
 
-      - name: Create tar package
+      - name: Package binary
         run: |
-          tar -cvf fireengine-$ARCH.tar fireengine-package
+          mkdir -p package
+          cp stockfish/$BINARY_NAME package/
+          tar -cvf $BINARY_NAME-$ARCH.tar -C package .
 
-      - name: Create GitHub release
+      - name: Create GitHub Release (dev)
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: fireengine-dev
-          name: Fireengine dev
-          files: fireengine-$ARCH.tar
-          token: ${{ secrets.token }}
+          tag_name: ${{ github.run_number }}-fireengine-bmi2
+          name: FireEngine BMI2 Dev Build ${{ github.run_number }}
+          files: fireengine-x86-64-bmi2.tar
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
