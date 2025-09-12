@@ -22,21 +22,25 @@ jobs:
 
       - name: Build FireEngine BMI2
         run: |
-          cd Stockfish/src
-          make -j$(nproc) ARCH=$ARCH COMP=g++ BINARY=$BINARY_NAME
+          # Build directly in src
+          if [ ! -f "src/Makefile" ]; then
+            echo "ERROR: Makefile not found in src!"
+            exit 1
+          fi
+          make -C src -j$(nproc) ARCH=$ARCH COMP=g++ BINARY=$BINARY_NAME
 
       - name: Verify binary exists
         run: |
-          if [ ! -f "Stockfish/src/$BINARY_NAME" ]; then
+          if [ ! -f "src/$BINARY_NAME" ]; then
             echo "ERROR: Binary not found!"
             exit 1
           fi
-          ls -lh Stockfish/src/$BINARY_NAME
+          ls -lh src/$BINARY_NAME
 
       - name: Package binary
         run: |
           mkdir -p package
-          cp Stockfish/src/$BINARY_NAME package/
+          cp src/$BINARY_NAME package/
           tar -cvf ${BINARY_NAME}-${ARCH}.tar -C package .
 
       - name: Create GitHub Release (dev)
