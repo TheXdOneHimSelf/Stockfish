@@ -1,102 +1,45 @@
-name: Upload Binaries
+name: Upload FireEngine BMI2
+
 on:
   workflow_dispatch:
 
 jobs:
-  Artifacts:
-    name: FireEngine bmi2
+  upload:
+    name: Upload FireEngine BMI2
     runs-on: ubuntu-latest
     env:
-      COMPCXX: g++
-      COMP: g++
-      EXT: ""
       NAME: fireengine
       BINARY: bmi2
-      SDE: bmi2
-    defaults:
-      run:
-        shell: bash
+      EXT: ""  # leave empty if no extension
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Download artifact from compilation
-        uses: actions/download-artifact@v4
-        with:
-          name: fireengine bmi2
-          path: fireengine bmi2
-
-      - name: Setup msys and install required packages
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          install: mingw-w64-x86_64-gcc make git zip
-
-      - name: Create Package
-        run: mkdir stockfish
-
-      - name: Download wiki
+      - name: Install dependencies
         run: |
-          git clone https://github.com/official-stockfish/Stockfish.wiki.git wiki
-          rm -rf wiki/.git
-          mv wiki stockfish/
+          sudo apt update
+          sudo apt install -y make gcc g++ tar zip
+
+      - name: Create package directory
+        run: mkdir -p stockfish
 
       - name: Copy files
         run: |
-          mv "fireengine bmi2" stockfish-workflow
-          cd stockfish-workflow
-          cp -r src ../stockfish/
-          cp -r scripts ../stockfish/
-          cp stockfish-$NAME-$BINARY$EXT ../stockfish/
-          cp "Top CPU Contributors.txt" ../stockfish/
-          cp Copying.txt ../stockfish/
-          cp AUTHORS ../stockfish/
-          cp CITATION.cff ../stockfish/
-          cp README.md ../stockfish/
-          cp CONTRIBUTING.md ../stockfish/
+          # Copy your compiled binary into stockfish directory
+          cp path/to/fireengine-bmi2 ./stockfish/
+          # Copy additional required files
+          cp -r src scripts AUTHORS CITATION.cff README.md CONTRIBUTING.md "Top CPU Contributors.txt" Copying.txt ./stockfish/
 
-      - name: Create tar
-        if: runner.os != 'Windows'
+      - name: Create tar archive
         run: |
-          chmod +x ./stockfish/stockfish-$NAME-$BINARY$EXT
-          tar -cvf stockfish-$NAME-$BINARY.tar stockfish
+          chmod +x ./stockfish/fireengine-bmi2
+          tar -cvf fireengine-bmi2.tar stockfish
 
-      - name: Create zip
-        if: runner.os == 'Windows'
-        run: |
-          zip -r stockfish-$NAME-$BINARY.zip stockfish
-
-      - name: Release
-        if: startsWith(github.ref_name, 'sf_') && github.ref_type == 'tag'
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
-          files: stockfish-$NAME-$BINARY.tar
+          files: fireengine-bmi2.tar
           token: ${{ secrets.token }}
-
-      - name: Get last commit sha
-        id: last_commit
-        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
-
-      - name: Get commit date
-        id: commit_date
-        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
-
-      - name: Check Pullable Commits
-        id: check_commits
-        run: |
-          git fetch
-          CHANGES=$(git rev-list HEAD..origin/master --count)
-          echo "CHANGES=$CHANGES" >> $GITHUB_ENV
-
-      - name: Prerelease
-        if: github.ref_name == 'master' && env.CHANGES == '0'
-        continue-on-error: true
-        uses: softprops/action-gh-release@v1
-        with:
-          name: FireEngine dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          tag_name: fireengine-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          prerelease: true
-          files: stockfish-$NAME-$BINARY.tar
-          token: ${{ secrets.token }}
+          tag_name: fireengine-bmi2
+          name: fireengine-bmi2
+          prerelease: false
