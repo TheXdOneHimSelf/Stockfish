@@ -1,58 +1,46 @@
-name: Build and Upload FireEngine BMI2
+name: Build and Upload Fireengine
 
 on:
   workflow_dispatch:
 
 jobs:
   build-and-upload:
-    name: Build FireEngine BMI2 on Ubuntu
     runs-on: ubuntu-latest
     env:
       NAME: fireengine
-      BINARY: bmi2
+      ARCH: x86-64-bmi2
+      COMP: g++
       EXT: ""
+      PAT_TOKEN: ${{ secrets.token }}
+
     steps:
-      # 1️⃣ Checkout your repo
-      - name: Checkout Repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up dependencies (if needed)
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git zip tar
+          sudo apt update
+          sudo apt install -y build-essential zip git
 
-      # 3️⃣ Build the BMI2 binary
-      - name: Build FireEngine BMI2
+      - name: Build Fireengine
         run: |
-          mkdir -p build
-          # Replace this with your actual build command
-          make build ARCH=bmi2
-          # Move the binary to a known folder
-          mv fireengine-bmi2 build/
+          make -j$(nproc) build ARCH=$ARCH COMP=$COMP EXT=$EXT
+          mv ./stockfish-$ARCH fireengine
 
-      # 4️⃣ Prepare package folder
-      - name: Prepare Package
+      - name: Prepare package folder
         run: |
-          mkdir -p fireengine-package
-          cp build/fireengine-bmi2 fireengine-package/
+          mkdir fireengine-package
+          cp fireengine fireengine-package/
+          cp -r src scripts README.md AUTHORS COPYING.txt "Top CPU Contributors.txt" fireengine-package/ || true
 
-      # 5️⃣ Create tar (for Linux)
-      - name: Create tar
+      - name: Create tar package
         run: |
-          tar -cvf fireengine-bmi2.tar fireengine-package
+          tar -cvf fireengine-$ARCH.tar fireengine-package
 
-      # 6️⃣ Upload artifact to GitHub
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: fireengine-bmi2
-          path: fireengine-bmi2.tar
-
-      # 7️⃣ Release (optional, only if tagging)
-      - name: Create GitHub Release
-        if: startsWith(github.ref_name, 'v')
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
-          files: fireengine-bmi2.tar
+          tag_name: fireengine-dev
+          name: Fireengine dev
+          files: fireengine-$ARCH.tar
           token: ${{ secrets.token }}
