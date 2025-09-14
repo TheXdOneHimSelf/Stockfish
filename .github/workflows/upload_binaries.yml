@@ -12,7 +12,7 @@ on:
             "config": [
               {
                 "name": "Linux GCC",
-                "os": "ubuntu-latest",
+                "os": "ubuntu-20.04",
                 "compiler": "g++",
                 "comp": "gcc",
                 "ext": "",
