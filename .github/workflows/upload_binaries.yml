@@ -1,6 +1,32 @@
 name: Upload Binaries
+
 on:
   workflow_dispatch:
+    inputs:
+      matrix:
+        description: 'Matrix JSON input for packaging'
+        required: true
+        type: string
+        default: >
+          {
+            "config": [
+              {
+                "name": "Linux GCC",
+                "os": "ubuntu-latest",
+                "compiler": "g++",
+                "comp": "gcc",
+                "ext": "",
+                "simple_name": "linux",
+                "sde": "none",
+                "shell": "bash",
+                "archive_ext": "tar",
+                "msys_sys": "",
+                "msys_env": ""
+              }
+            ],
+            "binaries": ["x86-64-bmi2"]
+          }
+
   workflow_call:
     inputs:
       matrix:
@@ -95,7 +121,6 @@ jobs:
         id: commit_date
         run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
-      # Make sure that an old ci that still runs on master doesn't recreate a prerelease
       - name: Check Pullable Commits
         id: check_commits
         run: |
