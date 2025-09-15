@@ -22,7 +22,6 @@ jobs:
           persist-credentials: false
 
       - name: Install GCC 11 on Linux
-        if: runner.os == 'Linux'
         uses: egor-tensin/setup-gcc@v1.3  # Use the latest stable version of the action
         with:
           version: 11
