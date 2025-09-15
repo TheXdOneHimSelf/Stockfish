@@ -1,41 +1,48 @@
-name: Build Stockfish
+name: Build Stockfish with BMI2
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build Stockfish with x86-64-bmi2
     runs-on: ubuntu-latest
-    name: Build x86-64-bmi2
+    env:
+      COMPCXX: gcc
+      COMP: gcc
+      EXT: .x86_64
+      NAME: stockfish
+      BINARY: x86-64-bmi2
+      SDE: ""
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install GCC 11 on Linux
+        if: runner.os == 'Linux'
+        uses: egor-tensin/setup-gcc@v1.3  # Use the latest stable version of the action
+        with:
+          version: 11
 
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y make g++ git zip
 
-      - name: Set up GCC 11
-        uses: egor-tensin/setup-gcc@v1.3
-        with:
-          version: 11
-
       - name: Download the used network from the fishtest framework
         run: make net
 
-      - name: Check compiler
+      - name: Check compiler version
         run: $COMPCXX -v
 
       - name: Test help target
         run: make help
 
-      - name: Check git
+      - name: Check git version
         run: git --version
-
-      - name: Check compiler
-        run: $COMPCXX -v
 
       - name: Show compiler CPU info
         run: |
@@ -45,13 +52,15 @@ jobs:
             $COMPCXX -Q -march=native --help=target
           fi
 
-      - name: Build Stockfish with BMI2
-        working-directory: src
+      - name: Compile Stockfish with BMI2
         run: |
           make clean
-          make -j$(nproc) build ARCH=x86-64-bmi2 COMP=gcc
-          make strip ARCH=x86-64-bmi2 COMP=gcc
+          make -j$(nproc) build ARCH=$BINARY COMP=$COMP
+          make strip ARCH=$BINARY COMP=$COMP
           mv stockfish ../stockfish-ubuntu-x86-64-bmi2
+
+      - name: Remove non-src files
+        run: git clean -fx
 
       - name: Upload compiled binary
         uses: actions/upload-artifact@v4
