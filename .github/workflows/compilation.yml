@@ -1,70 +1,37 @@
-name: Compilation
+name: Build Stockfish
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-bmi2:
-    name: Ubuntu GCC x86-64-bmi2
+  build:
     runs-on: ubuntu-latest
-
-    env:
-      COMPCXX: g++
-      COMP: gcc
-      EXT: ""
-      NAME: stockfish-ubuntu
-      BINARY: x86-64-bmi2
-      SDE: /opt/sde/sde
-      benchref: "bench.txt"
-
-    defaults:
-      run:
-        working-directory: src
-        shell: bash
+    name: Build x86-64-bmi2
 
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
-      - name: Install GCC 11
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y make g++ git zip
+
+      - name: Set up GCC 11
         uses: egor-tensin/setup-gcc@v1.3
         with:
           version: 11
 
-      - name: Download Intel SDE (for benchmarking)
-        uses: petarpetrovt/setup-sde@v2.4
-        with:
-          environmentVariableName: SDE_DIR
-          sdeVersion: 9.33.0
-
-      - name: Download network (for fishtest)
-        run: make net
-
-      - name: Show compiler version
-        run: $COMPCXX -v
-
-      - name: Show help
-        run: make help
-
-      - name: Show compiler CPU info
-        run: |
-          $COMPCXX -Q -march=native --help=target || true
-
-      - name: Compile x86-64-bmi2 build
+      - name: Build Stockfish with BMI2
+        working-directory: src
         run: |
           make clean
-          make -j4 profile-build ARCH=$BINARY COMP=$COMP WINE_PATH="$SDE"
-          make strip ARCH=$BINARY COMP=$COMP
-          WINE_PATH="$SDE" ../tests/signature.sh $benchref || true
-          mv ./stockfish$EXT ../stockfish-$NAME-$BINARY$EXT
-
-      - name: Clean non-source files
-        run: git clean -fx
+          make -j$(nproc) build ARCH=x86-64-bmi2 COMP=gcc
+          make strip ARCH=x86-64-bmi2 COMP=gcc
+          mv stockfish ../stockfish-ubuntu-x86-64-bmi2
 
       - name: Upload compiled binary
         uses: actions/upload-artifact@v4
         with:
           name: stockfish-ubuntu-x86-64-bmi2
-          path: ../stockfish-stockfish-ubuntu-x86-64-bmi2
+          path: ./stockfish-ubuntu-x86-64-bmi2
