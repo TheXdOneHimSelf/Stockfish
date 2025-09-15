@@ -53,8 +53,13 @@ jobs:
           chmod +x ./stockfish-ubuntu-x86-64-bmi2
           ./stockfish-ubuntu-x86-64-bmi2 --version
 
-      - name: Upload compiled binary
+      - name: Create tar archive
+        run: |
+          tar -cf stockfish-ubuntu-x86-64-bmi2.tar stockfish-ubuntu-x86-64-bmi2
+          ls -la *.tar
+
+      - name: Upload compiled binary as tar
         uses: actions/upload-artifact@v4
         with:
           name: stockfish-ubuntu-x86-64-bmi2
-          path: ./stockfish-ubuntu-x86-64-bmi2
+          path: ./stockfish-ubuntu-x86-64-bmi2.tar
