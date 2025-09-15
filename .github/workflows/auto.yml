@@ -1,0 +1,38 @@
+name: Sync stockfish
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */2 * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout our repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.TOKEN }}
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Add stockfish remote
+        run: |
+          git remote add stockfish https://github.com/official-stockfish/Stockfish.git || echo "NNUE already added"
+          git fetch nnue main
+
+      - name: Merge stockfish into our repo
+        run: |
+          git merge stockfish/main --allow-unrelated-histories -X ours --no-edit || true
+          git merge stockfish/main -X ours --no-edit || true
+          git commit -am "Sync stockfish updates (ours wins on conflicts)" || echo "No changes to commit"
+
+      - name: Push changes
+        run: git push origin main
