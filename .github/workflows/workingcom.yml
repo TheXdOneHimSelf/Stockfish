@@ -1,0 +1,37 @@
+name: Build Stockfish
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build x86-64-bmi2
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y make g++ git zip
+
+      - name: Set up GCC 11
+        uses: egor-tensin/setup-gcc@v1.3
+        with:
+          version: 11
+
+      - name: Build Stockfish with BMI2
+        working-directory: src
+        run: |
+          make clean
+          make -j$(nproc) build ARCH=x86-64-bmi2 COMP=gcc
+          make strip ARCH=x86-64-bmi2 COMP=gcc
+          mv stockfish ../stockfish-ubuntu-x86-64-bmi2
+
+      - name: Upload compiled binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockfish-ubuntu-x86-64-bmi2
+          path: ./stockfish-ubuntu-x86-64-bmi2
