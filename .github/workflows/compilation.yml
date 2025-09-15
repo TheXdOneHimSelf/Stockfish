@@ -1,10 +1,12 @@
 name: Compilation
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       matrix:
         type: string
         required: true
+        
 jobs:
   Compilation:
     name: ${{ matrix.config.name }} ${{ matrix.binaries }}
