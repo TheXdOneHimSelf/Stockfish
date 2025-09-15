@@ -22,6 +22,29 @@ jobs:
         with:
           version: 11
 
+      - name: Download the used network from the fishtest framework
+        run: make net
+
+      - name: Check compiler
+        run: $COMPCXX -v
+
+      - name: Test help target
+        run: make help
+
+      - name: Check git
+        run: git --version
+
+      - name: Check compiler
+        run: $COMPCXX -v
+
+      - name: Show compiler CPU info
+        run: |
+          if [[ "$COMPCXX" == clang* ]]; then
+            $COMPCXX -E - -march=native -###
+          else
+            $COMPCXX -Q -march=native --help=target
+          fi
+
       - name: Build Stockfish with BMI2
         working-directory: src
         run: |
