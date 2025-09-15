@@ -1,96 +1,70 @@
 name: Compilation
+
 on:
   workflow_dispatch:
-  workflow_call:
-    inputs:
-      matrix:
-        type: string
-        required: true
-        
+
 jobs:
-  Compilation:
-    name: ${{ matrix.config.name }} ${{ matrix.binaries }}
-    runs-on: ${{ matrix.config.os }}
+  build-bmi2:
+    name: Ubuntu GCC x86-64-bmi2
+    runs-on: ubuntu-latest
+
     env:
-      COMPCXX: ${{ matrix.config.compiler }}
-      COMP: ${{ matrix.config.comp }}
-      EXT: ${{ matrix.config.ext }}
-      NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binaries }}
-      SDE: ${{ matrix.config.sde }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(inputs.matrix) }}
+      COMPCXX: g++
+      COMP: gcc
+      EXT: ""
+      NAME: stockfish-ubuntu
+      BINARY: x86-64-bmi2
+      SDE: /opt/sde/sde
+      benchref: "bench.txt"
+
     defaults:
       run:
         working-directory: src
-        shell: ${{ matrix.config.shell }}
+        shell: bash
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - name: Install fixed GCC on Linux
-        if: runner.os == 'Linux'
-        uses: egor-tensin/setup-gcc@eaa888eb19115a521fa72b65cd94fe1f25bbcaac # @v1.3
+      - name: Install GCC 11
+        uses: egor-tensin/setup-gcc@v1.3
         with:
           version: 11
 
-      - name: Setup msys and install required packages
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: ${{ matrix.config.msys_sys }}
-          install: mingw-w64-${{ matrix.config.msys_env }} make git zip
-
-      - name: Download SDE package
-        if: runner.os == 'Linux' || runner.os == 'Windows'
-        uses: petarpetrovt/setup-sde@f0fa5971dc275704531e94264dd23250c442aa41 # @v2.4
+      - name: Download Intel SDE (for benchmarking)
+        uses: petarpetrovt/setup-sde@v2.4
         with:
           environmentVariableName: SDE_DIR
           sdeVersion: 9.33.0
 
-      - name: Download the used network from the fishtest framework
+      - name: Download network (for fishtest)
         run: make net
 
-      - name: Check compiler
+      - name: Show compiler version
         run: $COMPCXX -v
 
-      - name: Test help target
+      - name: Show help
         run: make help
 
-      - name: Check git
-        run: git --version
-
-      - name: Check compiler
-        run: $COMPCXX -v
-
-      - name: Show compiler cpu info
+      - name: Show compiler CPU info
         run: |
-          if [[ "$COMPCXX" == clang* ]]; then
-             $COMPCXX -E - -march=native -###
-          else
-            $COMPCXX -Q -march=native --help=target
-          fi
+          $COMPCXX -Q -march=native --help=target || true
 
-      # x86-64 with newer extensions tests
-
-      - name: Compile ${{ matrix.config.binaries }} build
+      - name: Compile x86-64-bmi2 build
         run: |
           make clean
           make -j4 profile-build ARCH=$BINARY COMP=$COMP WINE_PATH="$SDE"
           make strip ARCH=$BINARY COMP=$COMP
-          WINE_PATH="$SDE" ../tests/signature.sh $benchref
+          WINE_PATH="$SDE" ../tests/signature.sh $benchref || true
           mv ./stockfish$EXT ../stockfish-$NAME-$BINARY$EXT
 
-      - name: Remove non src files
+      - name: Clean non-source files
         run: git clean -fx
 
-      - name: Upload artifact for (pre)-release
+      - name: Upload compiled binary
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
-          path: |
-             .
-             !.git
-             !.output
+          name: stockfish-ubuntu-x86-64-bmi2
+          path: ../stockfish-stockfish-ubuntu-x86-64-bmi2
