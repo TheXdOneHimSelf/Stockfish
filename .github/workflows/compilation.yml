@@ -1,4 +1,4 @@
-name: Build Stockfish (BMI2)
+name: Build Stockfish
 
 on:
   workflow_dispatch:
@@ -8,9 +8,10 @@ jobs:
     name: Build Stockfish with x86-64-bmi2
     runs-on: ubuntu-latest
     env:
-      COMPCXX: gcc
+      COMPCXX: g++
       COMP: gcc
       BINARY: x86-64-bmi2
+      CXXFLAGS: "-std=c++17"
 
     steps:
       - name: Checkout repository
@@ -18,39 +19,42 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install GCC 11
-        uses: egor-tensin/setup-gcc@v1.3
-        with:
-          version: 11
+      - name: Install GCC 11 and G++ 11
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-11 g++-11
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 110
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y make g++ git zip
+          sudo apt-get install -y make git zip
 
-      # --- FIX IS HERE ---
+      - name: Set compiler versions
+        run: |
+          gcc --version
+          g++ --version
+
       - name: Download the neural network
-        # Specify the working directory for this command
         working-directory: ./src
-        run: make net
+        run: |
+          make net
 
-      - name: Check compiler version
-        run: $COMPCXX -v
-
-      # --- AND FIX IS HERE ---
       - name: Compile Stockfish with BMI2
-        # Also run the main build from the 'src' directory
-        # Move the compiled binary from 'src' up to the root directory
         working-directory: ./src
         run: |
           make clean
-          make -j$(nproc) build ARCH=$BINARY COMP=$COMP
+          make -j$(nproc) build ARCH=$BINARY COMP=$COMP COMPCXX=$COMPCXX
           make strip ARCH=$BINARY COMP=$COMP
           mv stockfish ../stockfish-ubuntu-x86-64-bmi2
+
+      - name: Verify binary
+        run: |
+          chmod +x ./stockfish-ubuntu-x86-64-bmi2
+          ./stockfish-ubuntu-x86-64-bmi2 --version
 
       - name: Upload compiled binary
         uses: actions/upload-artifact@v4
         with:
           name: stockfish-ubuntu-x86-64-bmi2
-          # The path is now correct as the binary was moved to the root
           path: ./stockfish-ubuntu-x86-64-bmi2
