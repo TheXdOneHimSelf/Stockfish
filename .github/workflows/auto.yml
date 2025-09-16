@@ -26,7 +26,7 @@ jobs:
       - name: Add stockfish remote
         run: |
           git remote add stockfish https://github.com/official-stockfish/Stockfish.git || echo "NNUE already added"
-          git fetch nnue main
+          git fetch stockfish main
 
       - name: Merge stockfish into our repo
         run: |
