@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.token }}
+          ref: master
 
       - name: Configure Git identity
         run: |
@@ -25,14 +25,14 @@ jobs:
 
       - name: Add stockfish remote
         run: |
-          git remote add stockfish https://github.com/official-stockfish/Stockfish.git || echo "NNUE already added"
-          git fetch stockfish master
+          git remote add stockfish https://github.com/official-stockfish/Stockfish.git || echo "Remote already exists"
+          git fetch stockfish master  # Fetch Stockfish's master branch
 
       - name: Merge stockfish into our repo
         run: |
-          git merge stockfish/main --allow-unrelated-histories -X ours --no-edit || true
-          git merge stockfish/main -X ours --no-edit || true
-          git commit -am "Sync stockfish updates (ours wins on conflicts)" || echo "No changes to commit"
+          git merge stockfish/master --allow-unrelated-histories -X ours --no-edit || echo "Merge completed"
+          git add .
+          git commit -m "Sync stockfish updates $(date +%Y-%m-%d)" || echo "No changes to commit"
 
       - name: Push changes
-        run: git push origin main
+        run: git push origin master  # Push to master instead of main
